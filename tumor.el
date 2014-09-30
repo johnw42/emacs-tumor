@@ -22,17 +22,28 @@
 
 (global-set-key (kbd "<C-tab>") 'tumor-try-expand)
 
+;; TODO:
+;; - Sort expansion candidates.
+;; - Cache symbols.
+;; - Generalize to support other languages.
+;; - Consider symbols in other buffers.
+;; - Consider interned symbols.
+;; - Detect and ignore garbage prefixes (e.g. "tumor-", but not "make-")
+;; - Pay attention to word boundaries inside symbols.
+;; - Insert a temporary message into the buffer showing other expansions.
+;; - Support case-insensitve expansion.
+;; - Re-consdier use of anchored matching.
 (defun tumor-try-expand ()
   "Try to expand the partial symbol before point using the
 symbols in the current buffer.  Repeated calls at the same
 location insert different symbols."
   (interactive)
-  (if (and (equal (current-buffer)
-		  (tumor-expansion-buffer tumor-last-expansion))
-	   (equal (point)
-		  (tumor-expansion-end tumor-last-expansion)))
-      (tumor-expand-again)
-    (tumor-try-first-expansion)))
+  (unless (and (equal (current-buffer)
+		      (tumor-expansion-buffer tumor-last-expansion))
+	       (equal (point)
+		      (tumor-expansion-end tumor-last-expansion)))
+    (tumor-try-first-expansion))
+  (tumor-expand-again))
 
 (defun tumor-try-first-expansion ()
   (let* ((part (tumor-symbol-here))
@@ -45,8 +56,7 @@ location insert different symbols."
 		:candidates candidates
 		:beginning (- (point)
 			      (length part))
-		:end (point)))))
-  (tumor-expand-again))
+		:end (point))))))
 
 (defun tumor-expand-again ()
   (when tumor-last-expansion

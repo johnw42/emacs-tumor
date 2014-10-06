@@ -42,36 +42,49 @@ of the form are passed as arguments."
        (backward-down-list)
        (point)))))
 
+(defun tumor-insert-form (form)
+  (save-excursion
+    (pp form (current-buffer))
+    (backward-delete-char 1))
+  (indent-pp-sexp))
+
 (defun tumor-replace-next-form (func)
-  (goto-char (point-max))
   (save-restriction
     (widen)
     (let ((start (point))
 	  (form (read (current-buffer))))
       (delete-region start (point))
-      (pp (funcall func form) (current-buffer))
-      (goto-char start)
-      (indent-pp-sexp))))
+      (tumor-insert-form (funcall func form)))))
 
 (defun tumor-update-version-history (history)
   `'(a ,history))
 
+(defun tumor-update-keys (key default-value update-func)
+  (save-excursion
+    (tumor-map-buffer-forms
+     (lambda (form)
+       (pcase form
+	 (`(tumor-module . ,_)
+	  (let (has-key)
+	    (tumor-narrow-to-inner-form)
+	    (tumor-map-buffer-forms
+	     (lambda (form)
+	       (when (eq form key)
+		 (setq has-key t)
+		 (insert " ")
+		 (tumor-replace-next-form update-func))))
+	    ;; (unless has-key
+	    ;;    (goto-char (point-max))
+	    ;;    (tumor-insert-form key)
+	    ;;    (insert " ")
+	    ;;    (tumor-insert-form default-value))
+	    )))))))
+
 (add-hook
  'before-save-hook
  (defun tumor-uuid-before-save-hook ()
-   (save-excursion
-     (tumor-map-buffer-forms
-      (lambda (form)
-	(pcase form
-	  (`(tumor-module . ,_)
-	   (tumor-narrow-to-inner-form)
-	   (tumor-map-buffer-forms
-	    (lambda (form)
-	      (pcase form
-	  	(:tumor-version-history
-		 (insert " ")
-		 (tumor-replace-next-form
-		  'tumor-update-version-history))))))))))))
+   (tumor-update-keys :tumor-version-history nil
+		      'tumor-update-version-history)))
 
 
 (tumor-module
@@ -83,45 +96,14 @@ of the form are passed as arguments."
 				  '(a
 				    '(a
 				      '(a
-					'(a
-					  '(a
-					    '(a
-					      '(a 'a))))))))))))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- nil   )
+					'('('(a
+					      '(a
+						'(a
+						  '(a
+						    '(a
+						      '(a nil)))))))))))))))))
 
 ;; (macroexpand
 ;;  '(tumor-module
 ;;    :tumor-version-history '(v1 v2)
 ;;    a b c))
-
-
-

@@ -4,15 +4,36 @@
 
 (defmacro tumor-module (&rest body)
   "Wrapper around all tumor-specific functionality."
-  ;; (macroexp-progn
-  ;;  (loop
-  ;;   while body collect
-  ;;   (pcase (pop body)
-  ;;     (`(:tumor-version-history . ,history)
-  ;;      (pop body)
-  ;;      `(setq tumor-version-history ',history))
-  ;;     (form form))))
-)
+  (unless (memq :tumor-version-history body)    
+    (macroexp-progn
+     (loop
+      while body collect
+      (pcase (pop body)
+	(`(:tumor-version-history . ,history)
+	 (pop body)
+	 `(setq tumor-version-history ',history))
+	(form form))))))
+
+(defun tumor-set-file-variable (symbol value)
+  ;; TODO
+  )
+
+(defun tumor-update-file (monad-func)
+  ;; TODO
+  )
+
+;; TODO: Parse file into tree containing the following node types:
+;; - sexp, line-comment, block-comment, hard-newline
+;; Keep start+end marker for each node.
+;; Derive grouping structure from newlines?
+;;
+;; Zipper ops:
+;; - forward-node
+;; - down-node
+;; - up-node
+;; - backward-node
+;; - delete-node
+;; - insert-node-before
 
 (defun tumor-map-buffer-forms (func)
   "Calls func for each form in the current buffer, passing the

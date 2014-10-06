@@ -135,6 +135,8 @@ list of strings."
   (paredit-mode)
   (set (make-local-variable '-tumor-buffer) t))
 
+(tumor-fuck-this)
+
 (defun begin-tumor (name)
   (cl-assert (and name (symbolp name)))
   (setq -defining-tumor name))

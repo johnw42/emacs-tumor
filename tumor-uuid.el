@@ -57,7 +57,12 @@ of the form are passed as arguments."
       (tumor-insert-form (funcall func form)))))
 
 (defun tumor-update-version-history (history)
-  `'(a ,history))
+  `'(a ,history)
+  `',(make-symbol
+      (with-temp-buffer
+	(call-process "uuidgen" nil t)
+	(backward-delete-char 1)
+	(buffer-string))))
 
 (defun tumor-update-keys (key default-value update-func)
   (save-excursion
@@ -87,21 +92,9 @@ of the form are passed as arguments."
 		      'tumor-update-version-history)))
 
 
-(tumor-module
- :tumor-version-history '(a
-			  '(a
-			    '(a
-			      '(a
-				'(a
-				  '(a
-				    '(a
-				      '(a
-					'('('(a
-					      '(a
-						'(a
-						  '(a
-						    '(a
-						      '(a nil)))))))))))))))))
+
+(tumor-module 
+ :tumor-version-history '43cc6379-0b00-4ad4-80b3-a022195dc0a)
 
 ;; (macroexpand
 ;;  '(tumor-module

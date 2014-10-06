@@ -18,30 +18,14 @@ set to the end of the form.  The form itself and the start offset
 of the form are passed as arguments."
   (condition-case nil
       (while t
-	(message "about to read at %s" (point))
-	(let* (
-	       ;; (str (buffer-substring (point)
-	       ;; 			      (point-max)))
-	       ;; (pair (read-from-string str))
-	       ;; (form (car pair))
-	       ;; (form-end (cdr pair))
-	       (form (read (current-buffer)))
-	       (form-end (point))
-
-)
-
-	  ;; (goto-char form-end)
+	(let* ((form (read (current-buffer)))
+	       (form-end (point)))
 	  (save-excursion
 	    (save-restriction
 	      (backward-sexp)
 	      (narrow-to-region (point)
 				form-end)
-	      (funcall func form)))
-	  ;; (save-restriction
-	  ;;   (narrow-to-region (point) form-end)
-	  ;;   (funcall func form)
-	  ;;   (goto-char (point-max)))
-))
+	      (funcall func form)))))
     (end-of-file)))
 
 (defun tumor-narrow-to-inner-form ()
@@ -58,46 +42,61 @@ of the form are passed as arguments."
 
 (defun tumor-delete-sexp ()
   (let ((start (point)))
-    (forward-sexp)
-    (delete-region start (point))))
+    (prog1 (read (current-buffer))
+      (delete-region start (point)))))
+
+(defun tumor-replace-next-form (func)
+  (goto-char (point-max))
+  (save-restriction
+    (widen)
+    (let ((start (point))
+	  (form (read (current-buffer))))
+      (delete-region start (point))
+      (pp (funcall func form) (current-buffer))
+      (goto-char start)
+      (indent-pp-sexp)))) 
 
 (add-hook
  'before-save-hook
  (defun tumor-uuid-before-save-hook ()
    (save-excursion
      (goto-char (point-min))
-
-     
-     (message "starting to read")
-
      (tumor-map-buffer-forms
       (lambda (form)
-	(message "found form before %s" (point))
 	(pcase form
 	  (`(tumor-module . ,_)
-	   (message "!!found tumor-module at %s" (point-min))
 	   (tumor-narrow-to-inner-form)
 	   (tumor-map-buffer-forms
 	    (lambda (form)
 	      (pcase form
 	  	(:tumor-version-history
-		 (goto-char (point-max))
-		 (save-restriction
-		   (widen)
-		   (tumor-delete-sexp))
-	  	 (insert " 'new-history")
+		 (tumor-replace-next-form
+		  (lambda (form)
+		    (cons 'a form)
+		    `'(a ,form)))
+		 ;; (goto-char (point-max))
+		 ;; (save-restriction
+		 ;;   (widen)
+		 ;;   (tumor-delete-sexp))
+	  	 ;; (insert " 'new-history")
 		 ))
-	      )))
-
-	  ((or (and head (pred symbolp))
-	       `(,head . ,_))
-	   (message "found %s at %s" head (point-min))))))
-
-     (message "done reading"))))
+	      )))))))))
 
 
 (tumor-module
- :tumor-version-history 'new-history)
+ :tumor-version-history'(a
+			 '(a
+			   '(a
+			     '(a
+			       (a a a a quote baz2)))))
+
+
+
+
+
+
+
+ nil   )
 
 ;; (macroexpand
 ;;  '(tumor-module

@@ -126,9 +126,21 @@ absent, it is inserted followed by DEFAULT-VALUE."
  'before-save-hook
  (defun tumor-uuid-before-save-hook ()
    (when (derived-mode-p 'emacs-lisp)
+     ;; TODO: commit on every save
      (eval-buffer)
      (tumor-update-keys :tumor-version-history nil
 			'tumor-update-version-history))))
+
+(add-hook
+ 'after-save-hook
+ (defun tumor-uuid-after-save-hook ()
+   (call-process "git" nil nil nil "stash" "save")
+   (call-process "git" nil nil nil "stash" "apply")
+   ;; (call-process "git" nil nil nil "commit" "-a" "-mWIP")
+   ;; (call-process "git" nil nil nil "branch" "-f" "tumor-wip")
+   ;; (call-process "git" nil nil nil "reset" "HEAD^")
+
+))
 
 
 ;; Test module.

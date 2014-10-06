@@ -16,6 +16,7 @@
   "Calls func for each form in the current buffer, with (point)
 set to the end of the form.  The form itself and the start offset
 of the form are passed as arguments."
+  (goto-char (point-min))
   (condition-case nil
       (while t
 	(let* ((form (read (current-buffer)))
@@ -25,6 +26,7 @@ of the form are passed as arguments."
 	      (backward-sexp)
 	      (narrow-to-region (point)
 				form-end)
+	      (goto-char (point-max))
 	      (funcall func form)))))
     (end-of-file)))
 
@@ -40,11 +42,6 @@ of the form are passed as arguments."
        (backward-down-list)
        (point)))))
 
-(defun tumor-delete-sexp ()
-  (let ((start (point)))
-    (prog1 (read (current-buffer))
-      (delete-region start (point)))))
-
 (defun tumor-replace-next-form (func)
   (goto-char (point-max))
   (save-restriction
@@ -54,13 +51,15 @@ of the form are passed as arguments."
       (delete-region start (point))
       (pp (funcall func form) (current-buffer))
       (goto-char start)
-      (indent-pp-sexp)))) 
+      (indent-pp-sexp))))
+
+(defun tumor-update-version-history (history)
+  `'(a ,history))
 
 (add-hook
  'before-save-hook
  (defun tumor-uuid-before-save-hook ()
    (save-excursion
-     (goto-char (point-min))
      (tumor-map-buffer-forms
       (lambda (form)
 	(pcase form
@@ -70,25 +69,46 @@ of the form are passed as arguments."
 	    (lambda (form)
 	      (pcase form
 	  	(:tumor-version-history
+		 (insert " ")
 		 (tumor-replace-next-form
-		  (lambda (form)
-		    (cons 'a form)
-		    `'(a ,form)))
-		 ;; (goto-char (point-max))
-		 ;; (save-restriction
-		 ;;   (widen)
-		 ;;   (tumor-delete-sexp))
-	  	 ;; (insert " 'new-history")
-		 ))
-	      )))))))))
+		  'tumor-update-version-history))))))))))))
 
 
 (tumor-module
- :tumor-version-history'(a
-			 '(a
-			   '(a
-			     '(a
-			       (a a a a quote baz2)))))
+ :tumor-version-history '(a
+			  '(a
+			    '(a
+			      '(a
+				'(a
+				  '(a
+				    '(a
+				      '(a
+					'(a
+					  '(a
+					    '(a
+					      '(a 'a))))))))))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

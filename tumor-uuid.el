@@ -3,19 +3,21 @@
 (require 'macroexp)
 
 (defmacro tumor-module (&rest body)
-  (macroexp-progn
-   (loop
-    while body collect
-    (pcase (pop body)
-      (`(:tumor-version-history . ,history)
-       (pop body)
-       `(setq tumor-version-history ',history))
-      (form form)))))
+  "Wrapper around all tumor-specific functionality."
+  ;; (macroexp-progn
+  ;;  (loop
+  ;;   while body collect
+  ;;   (pcase (pop body)
+  ;;     (`(:tumor-version-history . ,history)
+  ;;      (pop body)
+  ;;      `(setq tumor-version-history ',history))
+  ;;     (form form))))
+)
 
 (defun tumor-map-buffer-forms (func)
-  "Calls func for each form in the current buffer, with (point)
-set to the end of the form.  The form itself and the start offset
-of the form are passed as arguments."
+  "Calls func for each form in the current buffer, passing the
+form as the argument.  The function is called with the buffer
+narrowed to the form itself, and (point) is set to (point-max)."
   (goto-char (point-min))
   (condition-case nil
       (while t
@@ -31,6 +33,9 @@ of the form are passed as arguments."
     (end-of-file)))
 
 (defun tumor-narrow-to-inner-form ()
+  "Assuming the buffer is narrowed to a single list sexp, this
+function narrows to buffer to include just the contents of the
+list."
   (save-excursion
     (narrow-to-region
      (progn
@@ -43,12 +48,17 @@ of the form are passed as arguments."
        (point)))))
 
 (defun tumor-insert-form (form)
+  "Inserts a form in the current buffer, with pretty-printing and
+indentation."
   (save-excursion
     (pp form (current-buffer))
     (backward-delete-char 1))
   (indent-pp-sexp))
 
 (defun tumor-replace-next-form (func)
+  "Assuming point is positioned just after a form, reads the
+following form and replaces it with the result of calling FUNC on
+it."
   (save-restriction
     (widen)
     (let ((start (point))
@@ -57,14 +67,20 @@ of the form are passed as arguments."
       (tumor-insert-form (funcall func form)))))
 
 (defun tumor-update-version-history (history)
-  `'(a ,history)
   `',(make-symbol
-      (with-temp-buffer
-	(call-process "uuidgen" nil t)
-	(backward-delete-char 1)
-	(buffer-string))))
+      (tumor-uuid-string)))
+
+(defun tumor-uuid-string ()
+  "Generates a new random UUID."
+  (with-temp-buffer
+    (call-process "uuidgen" nil t)
+    (backward-delete-char 1)
+    (buffer-string)))
 
 (defun tumor-update-keys (key default-value update-func)
+  "Looks inside a top-level `tumor-module' and updates the sexp
+following the specified key using UPDATE-FUNC.  If the key is
+absent, it is inserted followed by DEFAULT-VALUE."
   (save-excursion
     (tumor-map-buffer-forms
      (lambda (form)
@@ -88,13 +104,15 @@ of the form are passed as arguments."
 (add-hook
  'before-save-hook
  (defun tumor-uuid-before-save-hook ()
-   (tumor-update-keys :tumor-version-history nil
-		      'tumor-update-version-history)))
+   (when (derived-mode-p 'emacs-lisp)
+     (eval-buffer)
+     (tumor-update-keys :tumor-version-history nil
+			'tumor-update-version-history))))
 
 
-
+;; Test module.
 (tumor-module 
- :tumor-version-history '43cc6379-0b00-4ad4-80b3-a022195dc0a)
+ :tumor-version-history '4c870d62-57a2-4df2-8bf5-8d0ae1c2cc3)
 
 ;; (macroexpand
 ;;  '(tumor-module
